@@ -157,7 +157,6 @@
         <div id="fit" class="fitline"></div>
       </div>
       <div class="card">
-        <!-- 移除那句 hint：不顯示任何提示文字 -->
         <pre id="out" class="mono"></pre>
       </div>
     </div>
@@ -223,7 +222,7 @@ function linspace(x1,x2,n=120){
   return out;
 }
 
-/** 固定寬度字串（避免 e+0/e+00 長度不一） */
+
 function fmtFixedExp(v){
   const s = Number(v).toExponential(6); // e.g. "-7.101483e+0"
   const m = s.match(/^([+-]?\d\.\d+e)([+-])(\d+)$/);
@@ -282,7 +281,7 @@ async function plot(){
     const xx = linspace(xmin-0.05*xr, xmax+0.05*xr, 300);
     const yy = xx.map(t => a + b*t);
 
-    // ===== 主圖：關 hover，避免 trace 字樣 =====
+
     Plotly.newPlot("plot",[
       { x, y, mode:"markers+text", text: pts.map(p=>String(p.A)), textposition:"top right",
         type:"scatter", name:"Isotopes", hoverinfo:"skip" },
@@ -301,7 +300,7 @@ async function plot(){
       ` &nbsp; <b>b</b> = ${b.toPrecision(6)}`+
       ` &nbsp; <b>R²</b> = ${r2.toPrecision(6)}`;
 
-    // ===== 表格：固定欄寬，永遠對齊 =====
+
     const denom = Math.sqrt(b*b + 1);
 
     const W_A = 6;
@@ -325,7 +324,7 @@ async function plot(){
     }
     document.getElementById("out").textContent = out;
 
-    // ===== zoom panels：同樣關 hover =====
+ 
     const zooms = document.getElementById("zooms");
     zooms.innerHTML = "";
 
