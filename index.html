@@ -376,24 +376,26 @@ async function plot(){
 
     Plotly.newPlot("plot",[
       {
-        x, y,
-        mode:"markers+text",
-        text: pts.map(p=>String(p.A)),
-        textposition:"top right",
-        type:"scatter",
-        name:"Isotopes"
+    x, y,
+    mode:"markers+text",
+    text: pts.map(p=>String(p.A)),
+    textposition:"top right",
+    type:"scatter",
+    name:"Isotopes",
+    hovertemplate:
+      "A=%{text}<br>" +
+      "mIS_x=%{x:.6g}<br>" +
+      "mIS_y=%{y:.6g}<extra></extra>"
       },
       {
-        x:xx, y:yy,
-        mode:"lines",
-        type:"scatter",
-        name:"Linear fit"
+    x:xx, y:yy,
+    mode:"lines",
+    type:"scatter",
+    name:"Linear fit",
+    hoverinfo:"skip"   // 不顯示 trace 2 的 hover
       }
     ],{
-      title:`King Plot: ${ty} vs ${tx} (ref=${ref})`,
-      xaxis:{title:`μΔν (${tx})`},
-      yaxis:{title:`μΔν (${ty})`},
-      margin:{l:70,r:20,t:60,b:60}
+  // ...
     }, {responsive:true});
 
     // fit summary
