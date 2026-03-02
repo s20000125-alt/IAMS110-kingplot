@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+</head>
+
+<body>
+
+<h2>King Plot Tool</h2>
+
+X transition
+<select id="tx">
+<option>680</option>
+<option>770</option>
+<option>431</option>
+<option>578</option>
+<option>1798</option>
+<option>467</option>
+<option>411</option>
+</select>
+
+Y transition
+<select id="ty">
+<option>770</option>
+<option>680</option>
+<option>431</option>
+<option>578</option>
+<option>1798</option>
+<option>467</option>
+<option>411</option>
+</select>
+
+<button onclick="plot()">Plot</button>
+
+<div id="plot" style="width:900px;height:600px;"></div>
+
+<script>
+
+function plot(){
+
+let x=[1,2,3,4]
+let y=[2,4,6,8]
+
+Plotly.newPlot('plot',[{
+x:x,
+y:y,
+mode:'markers'
+}])
+
+}
+
+</script>
+
+</body>
+</html>
