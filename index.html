@@ -2,6 +2,9 @@
 <html>
 <head>
 
+<meta charset="UTF-8">
+<title>King Plot Tool</title>
+
 <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 
 </head>
@@ -32,22 +35,166 @@ Y transition
 <option>411</option>
 </select>
 
+Reference isotope
+<select id="ref">
+<option>170</option>
+<option>171</option>
+<option>172</option>
+<option selected>174</option>
+<option>176</option>
+</select>
+
 <button onclick="plot()">Plot</button>
+
+<br><br>
 
 <div id="plot" style="width:900px;height:600px;"></div>
 
 <script>
 
-function plot(){
+const MASS={
+170:169.9347664,
+171:170.9363302,
+172:171.9363859,
+173:172.9382151,
+174:173.9388664,
+176:175.9425717
+};
 
-let x=[1,2,3,4]
-let y=[2,4,6,8]
+function mu(mA,mref){
+return mA*mref/Math.abs(mA-mref);
+}
 
-Plotly.newPlot('plot',[{
+async function loadTransition(tr){
+
+let r=await fetch("data/"+tr+".json");
+let j=await r.json();
+
+let map={};
+
+for(let d of j.data){
+
+map[d.isotope]=d.average;
+
+}
+
+return map;
+}
+
+function linearFit(x,y){
+
+let n=x.length;
+
+let sx=0;
+let sy=0;
+let sxx=0;
+let sxy=0;
+
+for(let i=0;i<n;i++){
+
+sx+=x[i];
+sy+=y[i];
+sxx+=x[i]*x[i];
+sxy+=x[i]*y[i];
+
+}
+
+let b=(n*sxy-sx*sy)/(n*sxx-sx*sx);
+let a=(sy-b*sx)/n;
+
+return {a:a,b:b};
+
+}
+
+async function plot(){
+
+let tx=document.getElementById("tx").value;
+let ty=document.getElementById("ty").value;
+let ref=parseInt(document.getElementById("ref").value);
+
+if(tx==ty){
+alert("X and Y must be different");
+return;
+}
+
+let dx=await loadTransition(tx);
+let dy=await loadTransition(ty);
+
+let nu_x_ref=dx[ref];
+let nu_y_ref=dy[ref];
+
+let mref=MASS[ref];
+
+let x=[];
+let y=[];
+let label=[];
+
+for(let A in dx){
+
+A=parseInt(A);
+
+if(A==ref)continue;
+
+if(!(A in dy))continue;
+
+let dnu_x=dx[A]-nu_x_ref;
+let dnu_y=dy[A]-nu_y_ref;
+
+let muA=mu(MASS[A],mref);
+
+let mIS_x=muA*dnu_x;
+let mIS_y=muA*dnu_y;
+
+x.push(mIS_x);
+y.push(mIS_y);
+label.push(A.toString());
+
+}
+
+let fit=linearFit(x,y);
+
+let xmin=Math.min(...x);
+let xmax=Math.max(...x);
+
+let xx=[];
+let yy=[];
+
+for(let i=0;i<200;i++){
+
+let t=xmin+(xmax-xmin)*i/200;
+
+xx.push(t);
+yy.push(fit.a+fit.b*t);
+
+}
+
+Plotly.newPlot("plot",[
+
+{
 x:x,
 y:y,
-mode:'markers'
-}])
+mode:"markers+text",
+text:label,
+textposition:"top right",
+type:"scatter",
+name:"Isotopes"
+},
+
+{
+x:xx,
+y:yy,
+mode:"lines",
+type:"scatter",
+name:"Fit"
+}
+
+],
+{
+title:"King Plot: "+ty+" vs "+tx,
+xaxis:{title:"μΔν ("+tx+")"},
+yaxis:{title:"μΔν ("+ty+")"}
+}
+)
 
 }
 
