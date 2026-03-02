@@ -75,7 +75,28 @@
       .field{ min-width:140px; }
     }
 
-    #plot{ width:100%; height:560px; }
+    /* 關鍵：讓 plot 容器明確可互動、避免被覆蓋 */
+    #plot{
+      width:100%;
+      height:560px;
+      position:relative;
+      overflow:visible;
+      z-index:1;
+    }
+    /* 關鍵：強制 Plotly 互動層可接收事件 */
+    #plot .main-svg, 
+    #plot .svg-container, 
+    #plot .plot-container,
+    #plot .draglayer,
+    #plot .nsewdrag,
+    #plot .hoverlayer,
+    #plot .modebar{
+      pointer-events: all !important;
+    }
+    /* 讓 modebar 永遠可見且可點 */
+    #plot .modebar{
+      opacity:1 !important;
+    }
 
     .fitline{ font-size:13px; line-height:1.55; }
     .fitline b{ font-weight:700; }
@@ -90,7 +111,6 @@
       overflow:auto;
       white-space:pre;
       margin:0;
-      tab-size: 8;
       line-height: 1.45;
     }
 
@@ -107,7 +127,9 @@
     @media (max-width: 640px){ #zooms{ grid-template-columns: 1fr; } }
 
     .zoomBox{ border:1px solid var(--line); border-radius:12px; overflow:hidden; background:#fff; }
-    .zoomInner{ width:100%; height:240px; }
+    .zoomInner{ width:100%; height:240px; position:relative; z-index:1; }
+    .zoomInner .modebar{ opacity:1 !important; }
+    .zoomInner .main-svg, .zoomInner .draglayer, .zoomInner .modebar{ pointer-events:all !important; }
   </style>
 </head>
 
@@ -223,13 +245,10 @@ function linspace(x1,x2,n=120){
 }
 
 function fmtFixedExp(v){
-  const s = Number(v).toExponential(6); // e.g. "-7.101483e+0"
+  const s = Number(v).toExponential(6);
   const m = s.match(/^([+-]?\d\.\d+e)([+-])(\d+)$/);
   if(!m) return s;
-  const base = m[1];
-  const sign = m[2];
-  const exp  = m[3].padStart(2, "0");
-  return base + sign + exp;            // e.g. "-7.101483e+00"
+  return m[1] + m[2] + m[3].padStart(2,"0");
 }
 function padRight(s, w){
   s = String(s);
@@ -274,17 +293,15 @@ async function plot(){
     const y = pts.map(p=>p.mIS_y);
     const {a,b,r2} = linearFit(x,y);
 
-    // main fit line
     const xmin = Math.min(...x), xmax = Math.max(...x);
     const xr = (xmax-xmin) || 1;
     const xx = linspace(xmin-0.05*xr, xmax+0.05*xr, 300);
     const yy = xx.map(t => a + b*t);
 
-    // Precompute d_perp for hover on points
     const denom = Math.sqrt(b*b + 1);
     const dperp_arr = pts.map(p => Math.abs(b*p.mIS_x - p.mIS_y + a)/denom);
 
-    // ===== Main plot: show meaningful names in hover (A preference) =====
+    // Main plot: hover enabled + meaningful labels (no trace)
     Plotly.newPlot("plot",[
       {
         x, y,
@@ -318,7 +335,10 @@ async function plot(){
       yaxis:{title:`μΔν (${ty})`},
       margin:{l:70,r:20,t:60,b:60},
       hovermode:"closest"
-    }, {responsive:true});
+    },{
+      responsive:true,
+      displayModeBar:true
+    });
 
     document.getElementById("fit").innerHTML =
       `<b>Fit:</b> mIS<sub>${ty}</sub> = a + b·mIS<sub>${tx}</sub>`+
@@ -326,18 +346,12 @@ async function plot(){
       ` &nbsp; <b>b</b> = ${b.toPrecision(6)}`+
       ` &nbsp; <b>R²</b> = ${r2.toPrecision(6)}`;
 
-    // ===== Table =====
-    const W_A = 6;
-    const W_X = 16;
-    const W_Y = 16;
-    const W_D = 16;
-
+    const W_A = 6, W_X = 16, W_Y = 16, W_D = 16;
     let out =
       padRight("A", W_A) +
       padRight("mIS_x", W_X) +
       padRight("mIS_y", W_Y) +
       padRight("d_perp", W_D) + "\n";
-
     for(const p of pts){
       const d = Math.abs(b*p.mIS_x - p.mIS_y + a)/denom;
       out +=
@@ -348,7 +362,7 @@ async function plot(){
     }
     document.getElementById("out").textContent = out;
 
-    // ===== Zoom panels (hover enabled with meaningful names) =====
+    // zoom panels
     const zooms = document.getElementById("zooms");
     zooms.innerHTML = "";
 
@@ -359,8 +373,7 @@ async function plot(){
     const hx = pad_frac*xspan;
     const hy = pad_frac*yspan;
 
-    for(let i=0;i<pts.length;i++){
-      const p = pts[i];
+    for(const p of pts){
       const x0 = p.mIS_x, y0 = p.mIS_y;
 
       const box = document.createElement("div");
@@ -378,20 +391,12 @@ async function plot(){
 
       Plotly.newPlot(inner,[
         {
-          x:zxx, y:zyy,
-          mode:"lines", type:"scatter",
-          showlegend:false,
-          hovertemplate:
-            "mIS_x=%{x:.6g}<br>" +
-            "mIS_y=%{y:.6g}" +
-            "<extra>Linear fit</extra>"
+          x:zxx, y:zyy, mode:"lines", type:"scatter", showlegend:false,
+          hovertemplate:"mIS_x=%{x:.6g}<br>mIS_y=%{y:.6g}<extra>Linear fit</extra>"
         },
         {
-          x:[x0], y:[y0],
-          mode:"markers", type:"scatter",
-          showlegend:false,
-          customdata:[d],
-          text:[String(p.A)],
+          x:[x0], y:[y0], mode:"markers", type:"scatter", showlegend:false,
+          text:[String(p.A)], customdata:[d],
           hovertemplate:
             "Isotope A=%{text}<br>" +
             "mIS_x=%{x:.6g}<br>" +
@@ -400,12 +405,8 @@ async function plot(){
             "<extra>Isotope point</extra>"
         },
         {
-          x:[x0, pr.x_proj], y:[y0, pr.y_proj],
-          mode:"lines", type:"scatter",
-          showlegend:false,
-          hovertemplate:
-            "projection" +
-            "<extra>Isotope point</extra>"
+          x:[x0, pr.x_proj], y:[y0, pr.y_proj], mode:"lines", type:"scatter", showlegend:false,
+          hovertemplate:"projection<extra>Isotope point</extra>"
         }
       ],{
         title:`${p.A}–${ref}   d⊥=${d.toPrecision(4)}`,
@@ -413,8 +414,12 @@ async function plot(){
         xaxis:{range:[x0-hx, x0+hx]},
         yaxis:{range:[y0-hy, y0+hy]},
         hovermode:"closest"
-      },{displayModeBar:false, responsive:true});
+      },{
+        displayModeBar:true,
+        responsive:true
+      });
     }
+
   }catch(err){
     alert(String(err));
     console.error(err);
