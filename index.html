@@ -5,12 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>King Plot Tool</title>
 
-  <!-- Font -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 
-  <!-- Plotly -->
   <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 
   <style>
@@ -30,27 +28,10 @@
       color:var(--text);
       background:var(--bg);
     }
-    .wrap{
-      max-width:1100px;
-      margin:28px auto;
-      padding:0 16px;
-    }
-    .title{
-      display:flex;
-      align-items:baseline;
-      gap:12px;
-      margin:0 0 14px 0;
-    }
-    .title h1{
-      font-size:22px;
-      margin:0;
-      font-weight:700;
-      letter-spacing:-0.02em;
-    }
-    .title .sub{
-      color:var(--muted);
-      font-size:13px;
-    }
+    .wrap{ max-width:1100px; margin:28px auto; padding:0 16px; }
+    .title{ display:flex; align-items:baseline; gap:12px; margin:0 0 14px 0; }
+    .title h1{ font-size:22px; margin:0; font-weight:700; letter-spacing:-0.02em; }
+    .title .sub{ color:var(--muted); font-size:13px; }
 
     .card{
       background:var(--card);
@@ -61,22 +42,9 @@
       margin:12px 0;
     }
 
-    .controls{
-      display:flex;
-      flex-wrap:wrap;
-      gap:12px;
-      align-items:end;
-    }
-    .field{
-      display:flex;
-      flex-direction:column;
-      gap:6px;
-      min-width:160px;
-    }
-    label{
-      font-size:12px;
-      color:var(--muted);
-    }
+    .controls{ display:flex; flex-wrap:wrap; gap:12px; align-items:end; }
+    .field{ display:flex; flex-direction:column; gap:6px; min-width:160px; }
+    label{ font-size:12px; color:var(--muted); }
     select, button{
       height:38px;
       border-radius:10px;
@@ -86,10 +54,7 @@
       font-size:14px;
       outline:none;
     }
-    select:focus{
-      border-color:#c7d2fe;
-      box-shadow:0 0 0 4px rgba(99,102,241,.15);
-    }
+    select:focus{ border-color:#c7d2fe; box-shadow:0 0 0 4px rgba(99,102,241,.15); }
     button{
       cursor:pointer;
       font-weight:600;
@@ -107,15 +72,12 @@
     }
     @media (max-width: 980px){
       .grid2{ grid-template-columns: 1fr; }
-      .field{ min-width: 140px; }
+      .field{ min-width:140px; }
     }
 
     #plot{ width:100%; height:560px; }
 
-    .fitline{
-      font-size:13px;
-      line-height:1.55;
-    }
+    .fitline{ font-size:13px; line-height:1.55; }
     .fitline b{ font-weight:700; }
 
     .mono{
@@ -126,47 +88,24 @@
       border-radius:12px;
       padding:12px;
       overflow:auto;
-      white-space:pre; /* important: no wrap */
+      white-space:pre; /* no wrap */
       margin:0;
     }
 
-    .zoomsTitle{
-      display:flex;
-      align-items:baseline;
-      justify-content:space-between;
-      gap:12px;
-      margin:0 0 8px 0;
-    }
-    .zoomsTitle h2{
-      font-size:16px;
-      margin:0;
-      font-weight:700;
-    }
-    .hint{
-      font-size:12px;
-      color:var(--muted);
-    }
+    .zoomsTitle{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin:0 0 8px 0; }
+    .zoomsTitle h2{ font-size:16px; margin:0; font-weight:700; }
+    .hint{ font-size:12px; color:var(--muted); }
+
     #zooms{
       display:grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
       gap:12px;
     }
-    @media (max-width: 980px){
-      #zooms{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    }
-    @media (max-width: 640px){
-      #zooms{ grid-template-columns: 1fr; }
-    }
-    .zoomBox{
-      border:1px solid var(--line);
-      border-radius:12px;
-      overflow:hidden;
-      background:#fff;
-    }
-    .zoomInner{
-      width:100%;
-      height:240px;
-    }
+    @media (max-width: 980px){ #zooms{ grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 640px){ #zooms{ grid-template-columns: 1fr; } }
+
+    .zoomBox{ border:1px solid var(--line); border-radius:12px; overflow:hidden; background:#fff; }
+    .zoomInner{ width:100%; height:240px; }
   </style>
 </head>
 
@@ -174,47 +113,32 @@
   <div class="wrap">
     <div class="title">
       <h1>King Plot Tool</h1>
-      <div class="sub">Transition selector • linear fit • R² • d⊥ • zoom panels</div>
+      <div class="sub">linear fit • R² • d⊥ • zoom panels</div>
     </div>
 
-    <!-- Controls -->
     <div class="card">
       <div class="controls">
         <div class="field">
           <label for="tx">Transition X</label>
           <select id="tx">
-            <option>680</option>
-            <option>770</option>
-            <option>431</option>
-            <option>578</option>
-            <option>1798</option>
-            <option>467</option>
-            <option>411</option>
+            <option>680</option><option>770</option><option>431</option><option>578</option>
+            <option>1798</option><option>467</option><option>411</option>
           </select>
         </div>
 
         <div class="field">
           <label for="ty">Transition Y</label>
           <select id="ty">
-            <option>770</option>
-            <option>680</option>
-            <option>431</option>
-            <option>578</option>
-            <option>1798</option>
-            <option>467</option>
-            <option>411</option>
+            <option>770</option><option>680</option><option>431</option><option>578</option>
+            <option>1798</option><option>467</option><option>411</option>
           </select>
         </div>
 
         <div class="field">
           <label for="ref">Reference isotope</label>
           <select id="ref">
-            <option>170</option>
-            <option>171</option>
-            <option>172</option>
-            <option>173</option>
-            <option selected>174</option>
-            <option>176</option>
+            <option>170</option><option>171</option><option>172</option>
+            <option>173</option><option selected>174</option><option>176</option>
           </select>
         </div>
 
@@ -222,12 +146,10 @@
       </div>
     </div>
 
-    <!-- Main plot -->
     <div class="card">
       <div id="plot"></div>
     </div>
 
-    <!-- Fit + table -->
     <div class="grid2">
       <div class="card">
         <div id="fit" class="fitline"></div>
@@ -238,11 +160,10 @@
       </div>
     </div>
 
-    <!-- Zooms -->
     <div class="card">
       <div class="zoomsTitle">
         <h2>Zoom isotope pairs</h2>
-        <div class="hint">Projection + d⊥ (hover disabled)</div>
+        <div class="hint">Hover disabled (no trace labels)</div>
       </div>
       <div id="zooms"></div>
     </div>
@@ -250,45 +171,30 @@
 
 <script>
 const ISOTOPES = [170,171,172,173,174,176];
-
 const MASS = {
-  170:169.9347664,
-  171:170.9363302,
-  172:171.9363859,
-  173:172.9382151,
-  174:173.9388664,
-  176:175.9425717
+  170:169.9347664, 171:170.9363302, 172:171.9363859,
+  173:172.9382151, 174:173.9388664, 176:175.9425717
 };
 
-function mu(mA, mref){
-  return (mA*mref)/Math.abs(mA-mref);
-}
+function mu(mA, mref){ return (mA*mref)/Math.abs(mA-mref); }
 
 async function loadTransition(tr){
   const r = await fetch("data/"+tr+".json");
   if(!r.ok) throw new Error("Cannot load data/"+tr+".json (HTTP "+r.status+")");
   const j = await r.json();
-
   const map = new Map();
-  for(const d of j.data){
-    map.set(Number(d.isotope), Number(d.average));
-  }
+  for(const d of j.data) map.set(Number(d.isotope), Number(d.average));
   return map;
 }
 
 function linearFit(x, y){
-  // OLS: y = a + b x
   const n = x.length;
   let sx=0, sy=0, sxx=0, sxy=0;
-  for(let i=0;i<n;i++){
-    sx+=x[i]; sy+=y[i];
-    sxx+=x[i]*x[i]; sxy+=x[i]*y[i];
-  }
+  for(let i=0;i<n;i++){ sx+=x[i]; sy+=y[i]; sxx+=x[i]*x[i]; sxy+=x[i]*y[i]; }
   const denom = n*sxx - sx*sx;
   const b = (n*sxy - sx*sy)/denom;
   const a = (sy - b*sx)/n;
 
-  // R^2
   const ybar = sy/n;
   let ss_res=0, ss_tot=0;
   for(let i=0;i<n;i++){
@@ -297,28 +203,27 @@ function linearFit(x, y){
     ss_tot += (y[i]-ybar)*(y[i]-ybar);
   }
   const r2 = 1 - ss_res/ss_tot;
-
   return {a,b,r2};
 }
 
 function dPerp(a,b,x0,y0){
-  // distance to line y = a + b x -> b x - y + a = 0
   return Math.abs(b*x0 - y0 + a)/Math.sqrt(b*b + 1);
 }
-
 function projPoint(a,b,x0,y0){
   const x_proj = (x0 + b*(y0 - a))/(1 + b*b);
   const y_proj = a + b*x_proj;
-  return {x_proj, y_proj};
+  return {x_proj,y_proj};
 }
-
 function linspace(x1,x2,n=120){
   if(n<=1) return [x1];
-  const out=[];
-  const step=(x2-x1)/(n-1);
+  const out=[], step=(x2-x1)/(n-1);
   for(let i=0;i<n;i++) out.push(x1 + step*i);
   return out;
 }
+
+// 固定欄寬格式（不用 tab，保證對齊）
+function padRight(s, w){ s=String(s); return s.length>=w ? s : s + " ".repeat(w-s.length); }
+function fmtExp(v){ return Number(v).toExponential(6); }
 
 async function plot(){
   try{
@@ -326,10 +231,7 @@ async function plot(){
     const ty = document.getElementById("ty").value;
     const ref = Number(document.getElementById("ref").value);
 
-    if(tx === ty){
-      alert("X and Y must be different");
-      return;
-    }
+    if(tx === ty){ alert("X and Y must be different"); return; }
 
     const dx = await loadTransition(tx);
     const dy = await loadTransition(ty);
@@ -352,20 +254,13 @@ async function plot(){
       const dnu_y = dy.get(A) - nu_y_ref;
 
       const muA = mu(MASS[A], mref);
-      const mIS_x = muA*dnu_x;
-      const mIS_y = muA*dnu_y;
-
-      pts.push({A, mIS_x, mIS_y});
+      pts.push({A, mIS_x: muA*dnu_x, mIS_y: muA*dnu_y});
     }
 
-    if(pts.length < 2){
-      alert("Not enough points to fit.");
-      return;
-    }
+    if(pts.length < 2){ alert("Not enough points to fit."); return; }
 
     const x = pts.map(p=>p.mIS_x);
     const y = pts.map(p=>p.mIS_y);
-
     const {a,b,r2} = linearFit(x,y);
 
     // main fit line
@@ -374,7 +269,7 @@ async function plot(){
     const xx = linspace(xmin-0.05*xr, xmax+0.05*xr, 300);
     const yy = xx.map(t => a + b*t);
 
-    // ===== main plot (remove trace tooltip labels) =====
+    // ===== 主圖：完全關掉 hover，避免任何 trace 字樣 =====
     Plotly.newPlot("plot",[
       {
         x, y,
@@ -383,11 +278,7 @@ async function plot(){
         textposition:"top right",
         type:"scatter",
         name:"Isotopes",
-        hovertemplate:
-          "A=%{text}<br>" +
-          "mIS_x=%{x:.6g}<br>" +
-          "mIS_y=%{y:.6g}" +
-          "<extra></extra>"
+        hoverinfo:"skip"
       },
       {
         x:xx, y:yy,
@@ -400,27 +291,36 @@ async function plot(){
       title:`King Plot: ${ty} vs ${tx} (ref=${ref})`,
       xaxis:{title:`μΔν (${tx})`},
       yaxis:{title:`μΔν (${ty})`},
-      margin:{l:70,r:20,t:60,b:60}
+      margin:{l:70,r:20,t:60,b:60},
+      hovermode:false   // 全域關閉 hover（保證不會出現 trace）
     }, {responsive:true});
 
-    // fit summary
     document.getElementById("fit").innerHTML =
       `<b>Fit:</b> mIS<sub>${ty}</sub> = a + b·mIS<sub>${tx}</sub>`+
       ` &nbsp; | &nbsp; <b>a</b> = ${a.toPrecision(6)}`+
       ` &nbsp; <b>b</b> = ${b.toPrecision(6)}`+
       ` &nbsp; <b>R²</b> = ${r2.toPrecision(6)}`;
 
-    // ===== table (formatted columns, no ugly wrap) =====
-    const fmt = (v) => Number(v).toExponential(6); // fixed-width-ish
-    let out = "A\tmIS_x\t\t\tmIS_y\t\t\td_perp\n";
+    // ===== 表格：固定欄寬，永遠對齊 =====
     const denom = Math.sqrt(b*b + 1);
+    const header =
+      padRight("A", 6) +
+      padRight("mIS_x", 18) +
+      padRight("mIS_y", 18) +
+      padRight("d_perp", 18) + "\n";
+
+    let out = header;
     for(const p of pts){
       const d = Math.abs(b*p.mIS_x - p.mIS_y + a)/denom;
-      out += `${p.A}\t${fmt(p.mIS_x)}\t${fmt(p.mIS_y)}\t${fmt(d)}\n`;
+      out +=
+        padRight(p.A, 6) +
+        padRight(fmtExp(p.mIS_x), 18) +
+        padRight(fmtExp(p.mIS_y), 18) +
+        padRight(fmtExp(d), 18) + "\n";
     }
     document.getElementById("out").textContent = out;
 
-    // ===== zoom isotope pairs =====
+    // ===== zoom panels：同樣完全關掉 hover =====
     const zooms = document.getElementById("zooms");
     zooms.innerHTML = "";
 
@@ -455,22 +355,20 @@ async function plot(){
         title:`${p.A}–${ref}   d⊥=${d.toPrecision(4)}`,
         margin:{l:40,r:10,t:40,b:35},
         xaxis:{range:[x0-hx, x0+hx]},
-        yaxis:{range:[y0-hy, y0+hy]}
+        yaxis:{range:[y0-hy, y0+hy]},
+        hovermode:false
       },{displayModeBar:false, responsive:true});
     }
-
   }catch(err){
     alert(String(err));
     console.error(err);
   }
 }
 
-// wire button + initial plot
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("btn").addEventListener("click", plot);
   plot();
 });
 </script>
-
 </body>
 </html>
