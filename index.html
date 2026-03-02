@@ -49,155 +49,218 @@ Reference isotope
 <br><br>
 
 <div id="plot" style="width:900px;height:600px;"></div>
+<div id="fit" style="margin:10px 0; font-family:system-ui;"></div>
+<pre id="out" style="background:#f6f6f6;padding:10px;overflow:auto;"></pre>
+
+<h3>Zoom isotope pairs</h3>
+<div id="zooms" style="display:flex;flex-wrap:wrap;gap:12px;"></div>
 
 <script>
+const ISOTOPES = [170,171,172,173,174,176];
 
-const MASS={
-170:169.9347664,
-171:170.9363302,
-172:171.9363859,
-173:172.9382151,
-174:173.9388664,
-176:175.9425717
+const MASS = {
+  170:169.9347664,
+  171:170.9363302,
+  172:171.9363859,
+  173:172.9382151,
+  174:173.9388664,
+  176:175.9425717
 };
 
-function mu(mA,mref){
-return mA*mref/Math.abs(mA-mref);
+function mu(mA, mref){
+  return (mA*mref)/Math.abs(mA-mref);
 }
 
 async function loadTransition(tr){
+  const r = await fetch("data/"+tr+".json");
+  if(!r.ok) throw new Error("Cannot load data/"+tr+".json (HTTP "+r.status+")");
+  const j = await r.json();
 
-let r=await fetch("data/"+tr+".json");
-let j=await r.json();
-
-let map={};
-
-for(let d of j.data){
-
-map[d.isotope]=d.average;
-
+  const map = new Map();
+  for(const d of j.data){
+    map.set(Number(d.isotope), Number(d.average));
+  }
+  return map;
 }
 
-return map;
+function linearFit(x, y){
+  // OLS: y = a + b x
+  const n = x.length;
+  let sx=0, sy=0, sxx=0, sxy=0;
+  for(let i=0;i<n;i++){
+    sx+=x[i]; sy+=y[i];
+    sxx+=x[i]*x[i]; sxy+=x[i]*y[i];
+  }
+  const denom = n*sxx - sx*sx;
+  const b = (n*sxy - sx*sy)/denom;
+  const a = (sy - b*sx)/n;
+
+  // R^2
+  const ybar = sy/n;
+  let ss_res=0, ss_tot=0;
+  for(let i=0;i<n;i++){
+    const yh = a + b*x[i];
+    ss_res += (y[i]-yh)*(y[i]-yh);
+    ss_tot += (y[i]-ybar)*(y[i]-ybar);
+  }
+  const r2 = 1 - ss_res/ss_tot;
+
+  return {a,b,r2};
 }
 
-function linearFit(x,y){
-
-let n=x.length;
-
-let sx=0;
-let sy=0;
-let sxx=0;
-let sxy=0;
-
-for(let i=0;i<n;i++){
-
-sx+=x[i];
-sy+=y[i];
-sxx+=x[i]*x[i];
-sxy+=x[i]*y[i];
-
+function dPerp(a,b,x0,y0){
+  // distance to line y = a + b x  ->  b x - y + a = 0
+  return Math.abs(b*x0 - y0 + a)/Math.sqrt(b*b + 1);
 }
 
-let b=(n*sxy-sx*sy)/(n*sxx-sx*sx);
-let a=(sy-b*sx)/n;
+function projPoint(a,b,x0,y0){
+  const x_proj = (x0 + b*(y0 - a))/(1 + b*b);
+  const y_proj = a + b*x_proj;
+  return {x_proj, y_proj};
+}
 
-return {a:a,b:b};
-
+function linspace(x1,x2,n=120){
+  if(n<=1) return [x1];
+  const out=[];
+  const step=(x2-x1)/(n-1);
+  for(let i=0;i<n;i++) out.push(x1 + step*i);
+  return out;
 }
 
 async function plot(){
+  try{
+    const tx = document.getElementById("tx").value;
+    const ty = document.getElementById("ty").value;
+    const ref = Number(document.getElementById("ref").value);
 
-let tx=document.getElementById("tx").value;
-let ty=document.getElementById("ty").value;
-let ref=parseInt(document.getElementById("ref").value);
+    if(tx === ty){
+      alert("X and Y must be different");
+      return;
+    }
 
-if(tx==ty){
-alert("X and Y must be different");
-return;
+    const dx = await loadTransition(tx);
+    const dy = await loadTransition(ty);
+
+    if(!dx.has(ref) || !dy.has(ref)){
+      alert("REF="+ref+" not found in one of the transitions");
+      return;
+    }
+
+    const nu_x_ref = dx.get(ref);
+    const nu_y_ref = dy.get(ref);
+    const mref = MASS[ref];
+
+    const pts=[];
+    for(const A of ISOTOPES){
+      if(A===ref) continue;
+      if(!dx.has(A) || !dy.has(A)) continue;
+
+      const dnu_x = dx.get(A) - nu_x_ref;
+      const dnu_y = dy.get(A) - nu_y_ref;
+
+      const muA = mu(MASS[A], mref);
+      const mIS_x = muA*dnu_x;
+      const mIS_y = muA*dnu_y;
+
+      pts.push({A, mIS_x, mIS_y});
+    }
+
+    if(pts.length < 2){
+      alert("Not enough points to fit.");
+      return;
+    }
+
+    const x = pts.map(p=>p.mIS_x);
+    const y = pts.map(p=>p.mIS_y);
+
+    const {a,b,r2} = linearFit(x,y);
+
+    // main fit line
+    const xmin = Math.min(...x), xmax = Math.max(...x);
+    const xr = (xmax-xmin) || 1;
+    const xx = linspace(xmin-0.05*xr, xmax+0.05*xr, 300);
+    const yy = xx.map(t => a + b*t);
+
+    Plotly.newPlot("plot",[
+      {
+        x, y,
+        mode:"markers+text",
+        text: pts.map(p=>String(p.A)),
+        textposition:"top right",
+        type:"scatter",
+        name:"Isotopes"
+      },
+      {
+        x:xx, y:yy,
+        mode:"lines",
+        type:"scatter",
+        name:"Linear fit"
+      }
+    ],{
+      title:`King Plot: ${ty} vs ${tx} (ref=${ref})`,
+      xaxis:{title:`μΔν (${tx})`},
+      yaxis:{title:`μΔν (${ty})`}
+    });
+
+    // show slope/intercept/R^2
+    document.getElementById("fit").innerHTML =
+      `<b>Fit:</b> mIS<sub>${ty}</sub> = a + b·mIS<sub>${tx}</sub> &nbsp; `+
+      `| <b>a</b> = ${a.toPrecision(6)} &nbsp; <b>b</b> = ${b.toPrecision(6)} &nbsp; <b>R²</b> = ${r2.toPrecision(6)}`;
+
+    // distance table
+    let out = "A\tmIS_x\tmIS_y\td_perp\n";
+    const denom = Math.sqrt(b*b + 1);
+    for(const p of pts){
+      const d = Math.abs(b*p.mIS_x - p.mIS_y + a)/denom;
+      out += `${p.A}\t${p.mIS_x}\t${p.mIS_y}\t${d}\n`;
+    }
+    document.getElementById("out").textContent = out;
+
+    // zoom isotope pairs
+    const zooms = document.getElementById("zooms");
+    zooms.innerHTML = "";
+
+    const y_min = Math.min(...y), y_max = Math.max(...y);
+    const yspan = (y_max - y_min) || 1;
+    const xspan = (xmax - xmin) || 1;
+    const pad_frac = 0.06;
+    const hx = pad_frac*xspan;
+    const hy = pad_frac*yspan;
+
+    for(const p of pts){
+      const x0 = p.mIS_x, y0 = p.mIS_y;
+
+      const box = document.createElement("div");
+      box.style.width = "300px";
+      box.style.height = "240px";
+      box.style.border = "1px solid #ddd";
+      box.style.padding = "6px";
+      box.style.boxSizing = "border-box";
+      zooms.appendChild(box);
+
+      const pr = projPoint(a,b,x0,y0);
+      const d = dPerp(a,b,x0,y0);
+
+      const zxx = linspace(x0-hx, x0+hx, 80);
+      const zyy = zxx.map(t => a + b*t);
+
+      Plotly.newPlot(box,[
+        {x:zxx, y:zyy, mode:"lines", type:"scatter", showlegend:false},
+        {x:[x0], y:[y0], mode:"markers", type:"scatter", showlegend:false},
+        {x:[x0, pr.x_proj], y:[y0, pr.y_proj], mode:"lines", type:"scatter", showlegend:false}
+      ],{
+        title:`${p.A}–${ref}   d⊥=${d.toPrecision(4)}`,
+        margin:{l:40,r:10,t:40,b:35},
+        xaxis:{range:[x0-hx, x0+hx]},
+        yaxis:{range:[y0-hy, y0+hy]}
+      },{displayModeBar:false, responsive:true});
+    }
+
+  }catch(err){
+    alert(String(err));
+    console.error(err);
+  }
 }
-
-let dx=await loadTransition(tx);
-let dy=await loadTransition(ty);
-
-let nu_x_ref=dx[ref];
-let nu_y_ref=dy[ref];
-
-let mref=MASS[ref];
-
-let x=[];
-let y=[];
-let label=[];
-
-for(let A in dx){
-
-A=parseInt(A);
-
-if(A==ref)continue;
-
-if(!(A in dy))continue;
-
-let dnu_x=dx[A]-nu_x_ref;
-let dnu_y=dy[A]-nu_y_ref;
-
-let muA=mu(MASS[A],mref);
-
-let mIS_x=muA*dnu_x;
-let mIS_y=muA*dnu_y;
-
-x.push(mIS_x);
-y.push(mIS_y);
-label.push(A.toString());
-
-}
-
-let fit=linearFit(x,y);
-
-let xmin=Math.min(...x);
-let xmax=Math.max(...x);
-
-let xx=[];
-let yy=[];
-
-for(let i=0;i<200;i++){
-
-let t=xmin+(xmax-xmin)*i/200;
-
-xx.push(t);
-yy.push(fit.a+fit.b*t);
-
-}
-
-Plotly.newPlot("plot",[
-
-{
-x:x,
-y:y,
-mode:"markers+text",
-text:label,
-textposition:"top right",
-type:"scatter",
-name:"Isotopes"
-},
-
-{
-x:xx,
-y:yy,
-mode:"lines",
-type:"scatter",
-name:"Fit"
-}
-
-],
-{
-title:"King Plot: "+ty+" vs "+tx,
-xaxis:{title:"μΔν ("+tx+")"},
-yaxis:{title:"μΔν ("+ty+")"}
-}
-)
-
-}
-
 </script>
 
 </body>
