@@ -1,17 +1,16 @@
 <!DOCTYPE html>
-<html>
-<head>
-
+<html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>King Plot Tool</title>
 
-  <!-- Font (可換成你喜歡的；這個是學術/介面常用) -->
+  <!-- Font -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 
+  <!-- Plotly -->
   <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 
   <style>
@@ -72,7 +71,7 @@
       display:flex;
       flex-direction:column;
       gap:6px;
-      min-width:140px;
+      min-width:160px;
     }
     label{
       font-size:12px;
@@ -87,7 +86,10 @@
       font-size:14px;
       outline:none;
     }
-    select:focus{ border-color:#c7d2fe; box-shadow:0 0 0 4px rgba(99,102,241,.15); }
+    select:focus{
+      border-color:#c7d2fe;
+      box-shadow:0 0 0 4px rgba(99,102,241,.15);
+    }
     button{
       cursor:pointer;
       font-weight:600;
@@ -105,15 +107,17 @@
     }
     @media (max-width: 980px){
       .grid2{ grid-template-columns: 1fr; }
+      .field{ min-width: 140px; }
     }
 
     #plot{ width:100%; height:560px; }
+
     .fitline{
       font-size:13px;
-      color:var(--text);
-      line-height:1.5;
+      line-height:1.55;
     }
     .fitline b{ font-weight:700; }
+
     .mono{
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
       font-size:12px;
@@ -122,6 +126,8 @@
       border-radius:12px;
       padding:12px;
       overflow:auto;
+      white-space:pre;
+      margin:0;
     }
 
     .zoomsTitle{
@@ -164,53 +170,83 @@
   </style>
 </head>
 
-</head>
-
 <body>
+  <div class="wrap">
+    <div class="title">
+      <h1>King Plot Tool</h1>
+      <div class="sub">Transition selector • linear fit • d⊥ • zoom panels</div>
+    </div>
 
-<h2>King Plot Tool</h2>
+    <!-- Controls -->
+    <div class="card">
+      <div class="controls">
+        <div class="field">
+          <label for="tx">Transition X</label>
+          <select id="tx">
+            <option>680</option>
+            <option>770</option>
+            <option>431</option>
+            <option>578</option>
+            <option>1798</option>
+            <option>467</option>
+            <option>411</option>
+          </select>
+        </div>
 
-X transition
-<select id="tx">
-<option>680</option>
-<option>770</option>
-<option>431</option>
-<option>578</option>
-<option>1798</option>
-<option>467</option>
-<option>411</option>
-</select>
+        <div class="field">
+          <label for="ty">Transition Y</label>
+          <select id="ty">
+            <option>770</option>
+            <option>680</option>
+            <option>431</option>
+            <option>578</option>
+            <option>1798</option>
+            <option>467</option>
+            <option>411</option>
+          </select>
+        </div>
 
-Y transition
-<select id="ty">
-<option>770</option>
-<option>680</option>
-<option>431</option>
-<option>578</option>
-<option>1798</option>
-<option>467</option>
-<option>411</option>
-</select>
+        <div class="field">
+          <label for="ref">Reference isotope</label>
+          <select id="ref">
+            <option>170</option>
+            <option>171</option>
+            <option>172</option>
+            <option>173</option>
+            <option selected>174</option>
+            <option>176</option>
+          </select>
+        </div>
 
-Reference isotope
-<select id="ref">
-<option>170</option>
-<option>171</option>
-<option>172</option>
-<option selected>174</option>
-<option>176</option>
-</select>
+        <button id="btn">Plot</button>
+      </div>
+    </div>
 
-<button onclick="plot()">Plot</button>
+    <!-- Main plot -->
+    <div class="card">
+      <div id="plot"></div>
+    </div>
 
-<br><br>
+    <!-- Fit + table -->
+    <div class="grid2">
+      <div class="card">
+        <div id="fit" class="fitline"></div>
+      </div>
+      <div class="card">
+        <div class="hint">Table includes perpendicular distance d⊥</div>
+        <pre id="out" class="mono"></pre>
+      </div>
+    </div>
 
-<div id="plot" style="width:900px;height:600px;"></div>
-<div id="fit" style="margin:10px 0; font-family:system-ui;"></div>
-<pre id="out" style="background:#f6f6f6;padding:10px;overflow:auto;"></pre>
-
-<h3>Zoom isotope pairs</h3>
-<div id="zooms" style="display:flex;flex-wrap:wrap;gap:12px;"></div>
+    <!-- Zooms -->
+    <div class="card">
+      <div class="zoomsTitle">
+        <h2>Zoom isotope pairs</h2>
+        <div class="hint">Each panel shows projection to fit line and d⊥</div>
+      </div>
+      <div id="zooms"></div>
+    </div>
+  </div>
 
 <script>
 const ISOTOPES = [170,171,172,173,174,176];
@@ -266,7 +302,7 @@ function linearFit(x, y){
 }
 
 function dPerp(a,b,x0,y0){
-  // distance to line y = a + b x  ->  b x - y + a = 0
+  // distance to line y = a + b x -> b x - y + a = 0
   return Math.abs(b*x0 - y0 + a)/Math.sqrt(b*b + 1);
 }
 
@@ -356,13 +392,16 @@ async function plot(){
     ],{
       title:`King Plot: ${ty} vs ${tx} (ref=${ref})`,
       xaxis:{title:`μΔν (${tx})`},
-      yaxis:{title:`μΔν (${ty})`}
-    });
+      yaxis:{title:`μΔν (${ty})`},
+      margin:{l:70,r:20,t:60,b:60}
+    }, {responsive:true});
 
-    // show slope/intercept/R^2
+    // fit summary
     document.getElementById("fit").innerHTML =
-      `<b>Fit:</b> mIS<sub>${ty}</sub> = a + b·mIS<sub>${tx}</sub> &nbsp; `+
-      `| <b>a</b> = ${a.toPrecision(6)} &nbsp; <b>b</b> = ${b.toPrecision(6)} &nbsp; <b>R²</b> = ${r2.toPrecision(6)}`;
+      `<b>Fit:</b> mIS<sub>${ty}</sub> = a + b·mIS<sub>${tx}</sub>`+
+      ` &nbsp; | &nbsp; <b>a</b> = ${a.toPrecision(6)}`+
+      ` &nbsp; <b>b</b> = ${b.toPrecision(6)}`+
+      ` &nbsp; <b>R²</b> = ${r2.toPrecision(6)}`;
 
     // distance table
     let out = "A\tmIS_x\tmIS_y\td_perp\n";
@@ -373,7 +412,7 @@ async function plot(){
     }
     document.getElementById("out").textContent = out;
 
-    // zoom isotope pairs
+    // zoom isotope pairs (use CSS grid + fixed inner div)
     const zooms = document.getElementById("zooms");
     zooms.innerHTML = "";
 
@@ -388,11 +427,10 @@ async function plot(){
       const x0 = p.mIS_x, y0 = p.mIS_y;
 
       const box = document.createElement("div");
-      box.style.width = "300px";
-      box.style.height = "240px";
-      box.style.border = "1px solid #ddd";
-      box.style.padding = "6px";
-      box.style.boxSizing = "border-box";
+      box.className = "zoomBox";
+      const inner = document.createElement("div");
+      inner.className = "zoomInner";
+      box.appendChild(inner);
       zooms.appendChild(box);
 
       const pr = projPoint(a,b,x0,y0);
@@ -401,7 +439,7 @@ async function plot(){
       const zxx = linspace(x0-hx, x0+hx, 80);
       const zyy = zxx.map(t => a + b*t);
 
-      Plotly.newPlot(box,[
+      Plotly.newPlot(inner,[
         {x:zxx, y:zyy, mode:"lines", type:"scatter", showlegend:false},
         {x:[x0], y:[y0], mode:"markers", type:"scatter", showlegend:false},
         {x:[x0, pr.x_proj], y:[y0, pr.y_proj], mode:"lines", type:"scatter", showlegend:false}
@@ -418,6 +456,12 @@ async function plot(){
     console.error(err);
   }
 }
+
+// wire button + initial plot
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("btn").addEventListener("click", plot);
+  plot();
+});
 </script>
 
 </body>
