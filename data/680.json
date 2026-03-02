@@ -1,0 +1,30 @@
+{
+  "transition": "680",
+  "unit": "THz_or_your_unit",
+  "data": [
+    {
+      "isotope": 170,
+      "average": 440.7770614
+    },
+    {
+      "isotope": 171,
+      "average": 440.777257092
+    },
+    {
+      "isotope": 172,
+      "average": 440.77759860000003
+    },
+    {
+      "isotope": 173,
+      "average": 440.777794439
+    },
+    {
+      "isotope": 174,
+      "average": 440.7780234
+    },
+    {
+      "isotope": 176,
+      "average": 440.7784292
+    }
+  ]
+}
