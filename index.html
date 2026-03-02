@@ -88,7 +88,7 @@
       border-radius:12px;
       padding:12px;
       overflow:auto;
-      white-space:pre; /* no wrap */
+      white-space:pre;
       margin:0;
       tab-size: 8;
       line-height: 1.45;
@@ -164,7 +164,7 @@
     <div class="card">
       <div class="zoomsTitle">
         <h2>Zoom isotope pairs</h2>
-        <div class="hint">Hover disabled (no trace labels)</div>
+        <div class="hint">Hover shows: Isotope point / Linear fit</div>
       </div>
       <div id="zooms"></div>
     </div>
@@ -221,7 +221,6 @@ function linspace(x1,x2,n=120){
   for(let i=0;i<n;i++) out.push(x1 + step*i);
   return out;
 }
-
 
 function fmtFixedExp(v){
   const s = Number(v).toExponential(6); // e.g. "-7.101483e+0"
@@ -281,17 +280,44 @@ async function plot(){
     const xx = linspace(xmin-0.05*xr, xmax+0.05*xr, 300);
     const yy = xx.map(t => a + b*t);
 
+    // Precompute d_perp for hover on points
+    const denom = Math.sqrt(b*b + 1);
+    const dperp_arr = pts.map(p => Math.abs(b*p.mIS_x - p.mIS_y + a)/denom);
 
+    // ===== Main plot: show meaningful names in hover (A preference) =====
     Plotly.newPlot("plot",[
-      { x, y, mode:"markers+text", text: pts.map(p=>String(p.A)), textposition:"top right",
-        type:"scatter", name:"Isotopes", hoverinfo:"skip" },
-      { x:xx, y:yy, mode:"lines", type:"scatter", name:"Linear fit", hoverinfo:"skip" }
+      {
+        x, y,
+        mode:"markers+text",
+        text: pts.map(p=>String(p.A)),
+        textposition:"top right",
+        type:"scatter",
+        name:"Isotopes",
+        customdata: dperp_arr,
+        hovertemplate:
+          "Isotope A=%{text}<br>" +
+          "mIS_x=%{x:.6g}<br>" +
+          "mIS_y=%{y:.6g}<br>" +
+          "d⊥=%{customdata:.6g}" +
+          "<extra>Isotope point</extra>"
+      },
+      {
+        x:xx, y:yy,
+        mode:"lines",
+        type:"scatter",
+        name:"Linear fit",
+        hovertemplate:
+          "mIS_y = a + b·mIS_x<br>" +
+          "mIS_x=%{x:.6g}<br>" +
+          "mIS_y=%{y:.6g}" +
+          "<extra>Linear fit</extra>"
+      }
     ],{
       title:`King Plot: ${ty} vs ${tx} (ref=${ref})`,
       xaxis:{title:`μΔν (${tx})`},
       yaxis:{title:`μΔν (${ty})`},
       margin:{l:70,r:20,t:60,b:60},
-      hovermode:false
+      hovermode:"closest"
     }, {responsive:true});
 
     document.getElementById("fit").innerHTML =
@@ -300,9 +326,7 @@ async function plot(){
       ` &nbsp; <b>b</b> = ${b.toPrecision(6)}`+
       ` &nbsp; <b>R²</b> = ${r2.toPrecision(6)}`;
 
-
-    const denom = Math.sqrt(b*b + 1);
-
+    // ===== Table =====
     const W_A = 6;
     const W_X = 16;
     const W_Y = 16;
@@ -324,7 +348,7 @@ async function plot(){
     }
     document.getElementById("out").textContent = out;
 
- 
+    // ===== Zoom panels (hover enabled with meaningful names) =====
     const zooms = document.getElementById("zooms");
     zooms.innerHTML = "";
 
@@ -335,7 +359,8 @@ async function plot(){
     const hx = pad_frac*xspan;
     const hy = pad_frac*yspan;
 
-    for(const p of pts){
+    for(let i=0;i<pts.length;i++){
+      const p = pts[i];
       const x0 = p.mIS_x, y0 = p.mIS_y;
 
       const box = document.createElement("div");
@@ -352,15 +377,42 @@ async function plot(){
       const zyy = zxx.map(t => a + b*t);
 
       Plotly.newPlot(inner,[
-        {x:zxx, y:zyy, mode:"lines", type:"scatter", showlegend:false, hoverinfo:"skip"},
-        {x:[x0], y:[y0], mode:"markers", type:"scatter", showlegend:false, hoverinfo:"skip"},
-        {x:[x0, pr.x_proj], y:[y0, pr.y_proj], mode:"lines", type:"scatter", showlegend:false, hoverinfo:"skip"}
+        {
+          x:zxx, y:zyy,
+          mode:"lines", type:"scatter",
+          showlegend:false,
+          hovertemplate:
+            "mIS_x=%{x:.6g}<br>" +
+            "mIS_y=%{y:.6g}" +
+            "<extra>Linear fit</extra>"
+        },
+        {
+          x:[x0], y:[y0],
+          mode:"markers", type:"scatter",
+          showlegend:false,
+          customdata:[d],
+          text:[String(p.A)],
+          hovertemplate:
+            "Isotope A=%{text}<br>" +
+            "mIS_x=%{x:.6g}<br>" +
+            "mIS_y=%{y:.6g}<br>" +
+            "d⊥=%{customdata:.6g}" +
+            "<extra>Isotope point</extra>"
+        },
+        {
+          x:[x0, pr.x_proj], y:[y0, pr.y_proj],
+          mode:"lines", type:"scatter",
+          showlegend:false,
+          hovertemplate:
+            "projection" +
+            "<extra>Isotope point</extra>"
+        }
       ],{
         title:`${p.A}–${ref}   d⊥=${d.toPrecision(4)}`,
         margin:{l:40,r:10,t:40,b:35},
         xaxis:{range:[x0-hx, x0+hx]},
         yaxis:{range:[y0-hy, y0+hy]},
-        hovermode:false
+        hovermode:"closest"
       },{displayModeBar:false, responsive:true});
     }
   }catch(err){
