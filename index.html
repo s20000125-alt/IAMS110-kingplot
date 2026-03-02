@@ -126,7 +126,7 @@
       border-radius:12px;
       padding:12px;
       overflow:auto;
-      white-space:pre;
+      white-space:pre; /* important: no wrap */
       margin:0;
     }
 
@@ -174,7 +174,7 @@
   <div class="wrap">
     <div class="title">
       <h1>King Plot Tool</h1>
-      <div class="sub">Transition selector • linear fit • d⊥ • zoom panels</div>
+      <div class="sub">Transition selector • linear fit • R² • d⊥ • zoom panels</div>
     </div>
 
     <!-- Controls -->
@@ -242,7 +242,7 @@
     <div class="card">
       <div class="zoomsTitle">
         <h2>Zoom isotope pairs</h2>
-        <div class="hint">Each panel shows projection to fit line and d⊥</div>
+        <div class="hint">Projection + d⊥ (hover disabled)</div>
       </div>
       <div id="zooms"></div>
     </div>
@@ -374,28 +374,33 @@ async function plot(){
     const xx = linspace(xmin-0.05*xr, xmax+0.05*xr, 300);
     const yy = xx.map(t => a + b*t);
 
+    // ===== main plot (remove trace tooltip labels) =====
     Plotly.newPlot("plot",[
       {
-    x, y,
-    mode:"markers+text",
-    text: pts.map(p=>String(p.A)),
-    textposition:"top right",
-    type:"scatter",
-    name:"Isotopes",
-    hovertemplate:
-      "A=%{text}<br>" +
-      "mIS_x=%{x:.6g}<br>" +
-      "mIS_y=%{y:.6g}<extra></extra>"
+        x, y,
+        mode:"markers+text",
+        text: pts.map(p=>String(p.A)),
+        textposition:"top right",
+        type:"scatter",
+        name:"Isotopes",
+        hovertemplate:
+          "A=%{text}<br>" +
+          "mIS_x=%{x:.6g}<br>" +
+          "mIS_y=%{y:.6g}" +
+          "<extra></extra>"
       },
       {
-    x:xx, y:yy,
-    mode:"lines",
-    type:"scatter",
-    name:"Linear fit",
-    hoverinfo:"skip"   // 不顯示 trace 2 的 hover
+        x:xx, y:yy,
+        mode:"lines",
+        type:"scatter",
+        name:"Linear fit",
+        hoverinfo:"skip"
       }
     ],{
-  // ...
+      title:`King Plot: ${ty} vs ${tx} (ref=${ref})`,
+      xaxis:{title:`μΔν (${tx})`},
+      yaxis:{title:`μΔν (${ty})`},
+      margin:{l:70,r:20,t:60,b:60}
     }, {responsive:true});
 
     // fit summary
@@ -405,16 +410,17 @@ async function plot(){
       ` &nbsp; <b>b</b> = ${b.toPrecision(6)}`+
       ` &nbsp; <b>R²</b> = ${r2.toPrecision(6)}`;
 
-    // distance table
-    let out = "A\tmIS_x\tmIS_y\td_perp\n";
+    // ===== table (formatted columns, no ugly wrap) =====
+    const fmt = (v) => Number(v).toExponential(6); // fixed-width-ish
+    let out = "A\tmIS_x\t\t\tmIS_y\t\t\td_perp\n";
     const denom = Math.sqrt(b*b + 1);
     for(const p of pts){
       const d = Math.abs(b*p.mIS_x - p.mIS_y + a)/denom;
-      out += `${p.A}\t${p.mIS_x}\t${p.mIS_y}\t${d}\n`;
+      out += `${p.A}\t${fmt(p.mIS_x)}\t${fmt(p.mIS_y)}\t${fmt(d)}\n`;
     }
     document.getElementById("out").textContent = out;
 
-    // zoom isotope pairs (use CSS grid + fixed inner div)
+    // ===== zoom isotope pairs =====
     const zooms = document.getElementById("zooms");
     zooms.innerHTML = "";
 
@@ -442,9 +448,9 @@ async function plot(){
       const zyy = zxx.map(t => a + b*t);
 
       Plotly.newPlot(inner,[
-        {x:zxx, y:zyy, mode:"lines", type:"scatter", showlegend:false},
-        {x:[x0], y:[y0], mode:"markers", type:"scatter", showlegend:false},
-        {x:[x0, pr.x_proj], y:[y0, pr.y_proj], mode:"lines", type:"scatter", showlegend:false}
+        {x:zxx, y:zyy, mode:"lines", type:"scatter", showlegend:false, hoverinfo:"skip"},
+        {x:[x0], y:[y0], mode:"markers", type:"scatter", showlegend:false, hoverinfo:"skip"},
+        {x:[x0, pr.x_proj], y:[y0, pr.y_proj], mode:"lines", type:"scatter", showlegend:false, hoverinfo:"skip"}
       ],{
         title:`${p.A}–${ref}   d⊥=${d.toPrecision(4)}`,
         margin:{l:40,r:10,t:40,b:35},
