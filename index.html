@@ -90,6 +90,8 @@
       overflow:auto;
       white-space:pre; /* no wrap */
       margin:0;
+      tab-size: 8;
+      line-height: 1.45;
     }
 
     .zoomsTitle{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin:0 0 8px 0; }
@@ -155,7 +157,7 @@
         <div id="fit" class="fitline"></div>
       </div>
       <div class="card">
-        <div class="hint">Table includes perpendicular distance d⊥</div>
+        <!-- 移除那句 hint：不顯示任何提示文字 -->
         <pre id="out" class="mono"></pre>
       </div>
     </div>
@@ -221,9 +223,20 @@ function linspace(x1,x2,n=120){
   return out;
 }
 
-// 固定欄寬格式（不用 tab，保證對齊）
-function padRight(s, w){ s=String(s); return s.length>=w ? s : s + " ".repeat(w-s.length); }
-function fmtExp(v){ return Number(v).toExponential(6); }
+/** 固定寬度字串（避免 e+0/e+00 長度不一） */
+function fmtFixedExp(v){
+  const s = Number(v).toExponential(6); // e.g. "-7.101483e+0"
+  const m = s.match(/^([+-]?\d\.\d+e)([+-])(\d+)$/);
+  if(!m) return s;
+  const base = m[1];
+  const sign = m[2];
+  const exp  = m[3].padStart(2, "0");
+  return base + sign + exp;            // e.g. "-7.101483e+00"
+}
+function padRight(s, w){
+  s = String(s);
+  return s.length >= w ? s : s + " ".repeat(w - s.length);
+}
 
 async function plot(){
   try{
@@ -269,30 +282,17 @@ async function plot(){
     const xx = linspace(xmin-0.05*xr, xmax+0.05*xr, 300);
     const yy = xx.map(t => a + b*t);
 
-    // ===== 主圖：完全關掉 hover，避免任何 trace 字樣 =====
+    // ===== 主圖：關 hover，避免 trace 字樣 =====
     Plotly.newPlot("plot",[
-      {
-        x, y,
-        mode:"markers+text",
-        text: pts.map(p=>String(p.A)),
-        textposition:"top right",
-        type:"scatter",
-        name:"Isotopes",
-        hoverinfo:"skip"
-      },
-      {
-        x:xx, y:yy,
-        mode:"lines",
-        type:"scatter",
-        name:"Linear fit",
-        hoverinfo:"skip"
-      }
+      { x, y, mode:"markers+text", text: pts.map(p=>String(p.A)), textposition:"top right",
+        type:"scatter", name:"Isotopes", hoverinfo:"skip" },
+      { x:xx, y:yy, mode:"lines", type:"scatter", name:"Linear fit", hoverinfo:"skip" }
     ],{
       title:`King Plot: ${ty} vs ${tx} (ref=${ref})`,
       xaxis:{title:`μΔν (${tx})`},
       yaxis:{title:`μΔν (${ty})`},
       margin:{l:70,r:20,t:60,b:60},
-      hovermode:false   // 全域關閉 hover（保證不會出現 trace）
+      hovermode:false
     }, {responsive:true});
 
     document.getElementById("fit").innerHTML =
@@ -303,24 +303,29 @@ async function plot(){
 
     // ===== 表格：固定欄寬，永遠對齊 =====
     const denom = Math.sqrt(b*b + 1);
-    const header =
-      padRight("A", 6) +
-      padRight("mIS_x", 18) +
-      padRight("mIS_y", 18) +
-      padRight("d_perp", 18) + "\n";
 
-    let out = header;
+    const W_A = 6;
+    const W_X = 16;
+    const W_Y = 16;
+    const W_D = 16;
+
+    let out =
+      padRight("A", W_A) +
+      padRight("mIS_x", W_X) +
+      padRight("mIS_y", W_Y) +
+      padRight("d_perp", W_D) + "\n";
+
     for(const p of pts){
       const d = Math.abs(b*p.mIS_x - p.mIS_y + a)/denom;
       out +=
-        padRight(p.A, 6) +
-        padRight(fmtExp(p.mIS_x), 18) +
-        padRight(fmtExp(p.mIS_y), 18) +
-        padRight(fmtExp(d), 18) + "\n";
+        padRight(p.A, W_A) +
+        padRight(fmtFixedExp(p.mIS_x), W_X) +
+        padRight(fmtFixedExp(p.mIS_y), W_Y) +
+        padRight(fmtFixedExp(d), W_D) + "\n";
     }
     document.getElementById("out").textContent = out;
 
-    // ===== zoom panels：同樣完全關掉 hover =====
+    // ===== zoom panels：同樣關 hover =====
     const zooms = document.getElementById("zooms");
     zooms.innerHTML = "";
 
