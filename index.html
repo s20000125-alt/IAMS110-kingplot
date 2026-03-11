@@ -75,7 +75,6 @@
       .field{ min-width:140px; }
     }
 
-    /* 關鍵：讓 plot 容器明確可互動、避免被覆蓋 */
     #plot{
       width:100%;
       height:560px;
@@ -83,7 +82,6 @@
       overflow:visible;
       z-index:1;
     }
-    /* 關鍵：強制 Plotly 互動層可接收事件 */
     #plot .main-svg, 
     #plot .svg-container, 
     #plot .plot-container,
@@ -93,9 +91,29 @@
     #plot .modebar{
       pointer-events: all !important;
     }
-    /* 讓 modebar 永遠可見且可點 */
     #plot .modebar{
       opacity:1 !important;
+    }
+
+    .coordBox{
+      position:absolute;
+      top:12px;
+      right:12px;
+      z-index:30;
+      background:rgba(17,24,39,.92);
+      color:#fff;
+      padding:8px 10px;
+      border-radius:10px;
+      font-size:12px;
+      line-height:1.45;
+      font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      pointer-events:none;
+      box-shadow:0 6px 18px rgba(0,0,0,.18);
+      min-width:160px;
+    }
+    .coordBox .label{
+      color:#cbd5e1;
+      margin-right:6px;
     }
 
     .fitline{ font-size:13px; line-height:1.55; }
@@ -171,7 +189,12 @@
     </div>
 
     <div class="card">
-      <div id="plot"></div>
+      <div id="plot">
+        <div id="coordBox" class="coordBox">
+          <div><span class="label">x</span><span id="coordX">–</span></div>
+          <div><span class="label">y</span><span id="coordY">–</span></div>
+        </div>
+      </div>
     </div>
 
     <div class="grid2">
@@ -255,6 +278,47 @@ function padRight(s, w){
   return s.length >= w ? s : s + " ".repeat(w - s.length);
 }
 
+function attachLiveCoordinates(plotId){
+  const gd = document.getElementById(plotId);
+  const coordX = document.getElementById("coordX");
+  const coordY = document.getElementById("coordY");
+
+  function clearBox(){
+    coordX.textContent = "–";
+    coordY.textContent = "–";
+  }
+
+  gd.addEventListener("mousemove", (ev) => {
+    const fullLayout = gd._fullLayout;
+    if(!fullLayout || !fullLayout.xaxis || !fullLayout.yaxis) return;
+
+    const xa = fullLayout.xaxis;
+    const ya = fullLayout.yaxis;
+
+    const rect = gd.getBoundingClientRect();
+    const px = ev.clientX - rect.left;
+    const py = ev.clientY - rect.top;
+
+    const x0 = xa._offset;
+    const x1 = xa._offset + xa._length;
+    const y0 = ya._offset;
+    const y1 = ya._offset + ya._length;
+
+    if(px < x0 || px > x1 || py < y0 || py > y1){
+      clearBox();
+      return;
+    }
+
+    const xVal = xa.p2l(px - xa._offset);
+    const yVal = ya.p2l(py - ya._offset);
+
+    coordX.textContent = Number(xVal).toPrecision(8);
+    coordY.textContent = Number(yVal).toPrecision(8);
+  });
+
+  gd.addEventListener("mouseleave", clearBox);
+}
+
 async function plot(){
   try{
     const tx = document.getElementById("tx").value;
@@ -301,8 +365,7 @@ async function plot(){
     const denom = Math.sqrt(b*b + 1);
     const dperp_arr = pts.map(p => Math.abs(b*p.mIS_x - p.mIS_y + a)/denom);
 
-    // Main plot: hover enabled + meaningful labels (no trace)
-    Plotly.newPlot("plot",[
+    await Plotly.newPlot("plot",[
       {
         x, y,
         mode:"markers+text",
@@ -340,6 +403,8 @@ async function plot(){
       displayModeBar:true
     });
 
+    attachLiveCoordinates("plot");
+
     document.getElementById("fit").innerHTML =
       `<b>Fit:</b> mIS<sub>${ty}</sub> = a + b·mIS<sub>${tx}</sub>`+
       ` &nbsp; | &nbsp; <b>a</b> = ${a.toPrecision(6)}`+
@@ -362,7 +427,6 @@ async function plot(){
     }
     document.getElementById("out").textContent = out;
 
-    // zoom panels
     const zooms = document.getElementById("zooms");
     zooms.innerHTML = "";
 
